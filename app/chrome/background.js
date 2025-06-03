@@ -162,14 +162,17 @@ PortManager.prototype.trackTargetPort = function (app, tab, port) {
 };
 
 
-function initializeExtension(runtime, extension, $document, tabs) {
+function initializeExtension() {
 
     var portManager = new PortManager();
-    extension.onConnect.addListener(function (port) {
+    chrome.runtime.onConnect.addListener(function (port) {
         if (port.name.indexOf("for_tab_") === 0) {
             console.log("Devtools listening for tab ", port.name);
             var tabId = parseInt(port.name.substring("for_tab_".length));
-            tabs.executeScript(tabId, {file: "app/chrome/htmlStorageHook.js"}, function (e, p) {
+            chrome.scripting.executeScript({
+                target: { tabId: tabId },
+                files: ["app/chrome/htmlStorageHook.js"]
+            }, function () {
                 port.postMessage("portConnected");
                 console.log("Connecting devtools port");
             });
@@ -191,7 +194,7 @@ function initializeExtension(runtime, extension, $document, tabs) {
 
 
     //only invoked by chrome apps
-    extension.onConnectExternal.addListener(function (externalPort) {
+    chrome.runtime.onConnectExternal.addListener(function (externalPort) {
         var appName = externalPort.sender.id;
         var tabId = externalPort.sender.tab ? externalPort.sender.tab.id : undefined;
 
@@ -202,32 +205,57 @@ function initializeExtension(runtime, extension, $document, tabs) {
         }
     });
 
-    runtime.onMessage.addListener(function (message, sender, response) {
+    chrome.runtime.onMessage.addListener(function (message, sender, response) {
         if (message.action === 'copy') {
-            area.value = message.params[0];
-            area.select();
-            $document.execCommand('copy');
+            // Use chrome.scripting API to handle clipboard operations in MV3
+            chrome.scripting.executeScript({
+                target: { tabId: sender.tab.id },
+                func: function(text) {
+                    navigator.clipboard.writeText(text).then(function() {
+                        console.log('Text copied to clipboard');
+                    }).catch(function(err) {
+                        console.error('Could not copy text: ', err);
+                        // Fallback to legacy method
+                        var area = document.createElement('textarea');
+                        area.value = text;
+                        document.body.appendChild(area);
+                        area.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(area);
+                    });
+                },
+                args: [message.params[0]]
+            });
             response && response();
-            area.value = '';
             return;
         }
         if (message.action === 'paste') {
-            area.select();
-            //noinspection JSCheckFunctionSignatures
-            $document.execCommand('paste');
-            response && response(area.value);
-            area.value = '';
+            // Use chrome.scripting API to handle clipboard operations in MV3
+            chrome.scripting.executeScript({
+                target: { tabId: sender.tab.id },
+                func: function() {
+                    return navigator.clipboard.readText().catch(function(err) {
+                        console.error('Could not read clipboard: ', err);
+                        // Fallback to legacy method
+                        var area = document.createElement('textarea');
+                        document.body.appendChild(area);
+                        area.select();
+                        document.execCommand('paste');
+                        var value = area.value;
+                        document.body.removeChild(area);
+                        return value;
+                    });
+                }
+            }, function(results) {
+                response && response(results[0].result);
+            });
+            return true; // Indicates we will call response asynchronously
         }
     });
-
-    var area = $document.createElement('textarea');
-    $document.body.appendChild(area);
-
 }
 
-if (chrome.runtime && chrome.extension && document) {
-    initializeExtension(chrome.runtime, chrome.extension, document, chrome.tabs);
-}
+// Initialize the extension when the service worker starts
+initializeExtension();
 
 
 

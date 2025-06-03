@@ -4,6 +4,8 @@ function getChromeApiMock(mocks) {
         sendMessage: jasmine.createSpy("runtime.sendMessage"),
         onMessage: mocks.createEvent(),
         onMessageExternal: mocks.createEvent(),
+        onConnect: mocks.createEvent(),
+        onConnectExternal: mocks.createEvent(),
         connect: jasmine.createSpy("runtime.connect").andCallFake(function () {
             return mocks.createMockPort();
         }),
@@ -20,14 +22,11 @@ function getChromeApiMock(mocks) {
             tabId:11
         }
     };
-    chrome.extension = {
-        onConnect: mocks.createEvent(),
-        onConnectExternal: mocks.createEvent(),
-        connect: jasmine.createSpy("extension.connect").andCallFake(function () {
-            return mocks.createMockPort();
-        })
+    // chrome.extension is deprecated in MV3, using chrome.runtime instead
+    
+    chrome.scripting = {
+        executeScript: jasmine.createSpy("scripting.executeScript")
     };
-    chrome.runtime.onConnectExternal = chrome.extension.onConnectExternal = mocks.createEvent();
 
     chrome.storage = {};
     chrome.storage.onChanged = mocks.createEvent();
