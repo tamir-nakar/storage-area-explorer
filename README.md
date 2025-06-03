@@ -20,6 +20,28 @@ This fork includes the following improvements:
 - ✅ Modern clipboard API with fallback support
 - ✅ Updated Chrome extension APIs for future compatibility
 
+## Building for Chrome Web Store
+
+### Quick Build (Recommended)
+```bash
+# Install dependencies
+npm install
+
+# Build extension (no tests)
+npm run build
+```
+
+### Build with Tests
+```bash
+# Install dependencies
+npm install
+
+# Run tests and build
+npm test
+```
+
+The build output will be in `build/storage-area-explorer-v0.4.3_[timestamp].zip` - ready to upload to Chrome Web Store!
+
 Screen shots:
 
 ![General view](https://raw.github.com/jusio/storage-area-explorer/master/screenshots/general-view.png)

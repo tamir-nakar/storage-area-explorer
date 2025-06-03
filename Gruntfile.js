@@ -3,17 +3,34 @@ module.exports = function (grunt) {
     // Project configuration.
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
-        clean: ['build'],
+        clean: ['build', 'components'],
         karma: {
             unit: {
                 configFile: 'karma.conf.js'
             }
         },
-        bower: {
-            install: {
-                options:{
-                    copy:false
-                }
+        copy: {
+            dependencies: {
+                files: [
+                    {
+                        expand: true,
+                        cwd: 'node_modules/bootstrap/dist/',
+                        src: ['css/bootstrap.min.css', 'js/bootstrap.min.js', 'fonts/glyphicons-halflings-regular.woff'],
+                        dest: 'components/bootstrap/dist/'
+                    },
+                    {
+                        expand: true,
+                        cwd: 'node_modules/jquery/dist/',
+                        src: 'jquery.min.js',
+                        dest: 'components/jquery/'
+                    },
+                    {
+                        expand: true,
+                        cwd: 'node_modules/angular/',
+                        src: 'angular.min.js',
+                        dest: 'components/angular/'
+                    }
+                ]
             }
         },
         zip: {
@@ -48,14 +65,16 @@ module.exports = function (grunt) {
     });
 
     grunt.loadNpmTasks('grunt-contrib-clean');
+    grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-zip');
     grunt.loadNpmTasks('grunt-karma');
-    grunt.loadNpmTasks('grunt-bower-task');
-
 
     // Default task(s).
-    grunt.registerTask('default', ['clean', 'karma', 'zip']);
+    grunt.registerTask('default', ['clean', 'karma', 'copy', 'zip']);
 
-    grunt.registerTask("ci", ['clean', 'bower','karma', 'zip'])
-
+    // CI task with tests (legacy compatibility)
+    grunt.registerTask("ci", ['clean', 'karma', 'copy', 'zip']);
+    
+    // New build task without tests
+    grunt.registerTask("build", ['clean', 'copy', 'zip']);
 };
